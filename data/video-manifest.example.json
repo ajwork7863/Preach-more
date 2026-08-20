@@ -1,0 +1,29 @@
+{
+  "series": [
+    {
+      "id": "example-series",
+      "title": "Verse-by-Verse Tafsir",
+      "scholar": "Name of the teacher",
+      "language": "en",
+      "provider": "youtube",
+      "homepage": "https://example.org/series"
+    }
+  ],
+  "entries": [
+    {
+      "seriesId": "example-series",
+      "range": "1:1-1:7",
+      "videoId": "REPLACE_WITH_YOUTUBE_ID",
+      "start": 0,
+      "end": 640,
+      "title": "Al-Fatihah, complete"
+    },
+    {
+      "seriesId": "example-series",
+      "range": "2:255",
+      "videoId": "REPLACE_WITH_YOUTUBE_ID",
+      "start": 95,
+      "title": "Ayat al-Kursi"
+    }
+  ]
+}

@@ -1,0 +1,59 @@
+@import "tailwindcss";
+
+@theme {
+  --font-arabic: "Scheherazade New", "Amiri", "Noto Naskh Arabic", "Traditional Arabic", serif;
+}
+
+:root {
+  --bg: #fbf8f2;
+  --panel: #ffffff;
+  --border: #e6ded0;
+  --ink: #1d1a15;
+  --muted: #6f6653;
+  --accent: #1f7a5a;
+  --accent-soft: #e6f2ec;
+  --gold: #a8802c;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #14130f;
+    --panel: #1c1a15;
+    --border: #322e25;
+    --ink: #f0ebe0;
+    --muted: #a49a85;
+    --accent: #4bbf92;
+    --accent-soft: #17352a;
+    --gold: #d3ac5c;
+  }
+}
+
+html {
+  color-scheme: light dark;
+}
+
+body {
+  background: var(--bg);
+  color: var(--ink);
+  -webkit-font-smoothing: antialiased;
+}
+
+.arabic {
+  font-family: var(--font-arabic);
+  direction: rtl;
+  line-height: 2.15;
+  font-size: 1.9rem;
+}
+
+.panel {
+  background: var(--panel);
+  border: 1px solid var(--border);
+}
+
+.muted {
+  color: var(--muted);
+}
+
+.accent {
+  color: var(--accent);
+}
