@@ -54,6 +54,20 @@ The language picker lists every translation the Quran.com API publishes, grouped
 by language, with the native language name and correct script direction for the
 123 languages in `lib/languages.ts`.
 
+### Simple English
+
+Each ayah carries a second paragraph in plain, present-day English, taken from a
+translation written that way (The Clear Quran, resolved at runtime by
+`resolvePlainEnglishId`). It is aimed at readers who find the formal English of
+older translations hard to follow. Both translations arrive in the same API
+request, so the extra paragraph costs no additional round trip, and it is
+suppressed when the reader has already selected that edition as their main
+translation. Toggle it with "Simple English" in the reader controls.
+
+It is a published translation, not text this app generated or simplified.
+
+### Missing languages
+
 Where a language has no published translation, the app says so. It does not
 machine-translate scripture — an automatic translation of the Quran is not a
 translation of the Quran, and presenting one as such would be worse than the gap

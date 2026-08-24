@@ -64,6 +64,7 @@ export default function Reader({
     saveProgress(surah.id, verse.ayahNumber);
   };
 
+  const plainEnglishSource = verses.find((v) => v.plainEnglishSource)?.plainEnglishSource ?? null;
   const previous = surah.id > 1 ? surah.id - 1 : null;
   const next = surah.id < 114 ? surah.id + 1 : null;
   const linkTo = (id: number) => `/surah/${id}?t=${preferences.translationId}`;
@@ -81,6 +82,12 @@ export default function Reader({
           {surah.englishName} · {surah.ayahCount} ayahs · {surah.revelation} revelation
           {translationName ? ` · ${translationName}` : ""}
         </p>
+        {preferences.showPlainEnglish && plainEnglishSource ? (
+          <p className="muted text-xs">
+            Simple English paragraphs are from {plainEnglishSource}, a published plain-English
+            translation.
+          </p>
+        ) : null}
       </header>
 
       <div
@@ -96,6 +103,11 @@ export default function Reader({
           label="Word by word"
           checked={preferences.showWordByWord}
           onChange={(showWordByWord) => update({ showWordByWord })}
+        />
+        <Toggle
+          label="Simple English"
+          checked={preferences.showPlainEnglish}
+          onChange={(showPlainEnglish) => update({ showPlainEnglish })}
         />
         <Toggle
           label="Memorisation mode"
@@ -131,6 +143,7 @@ export default function Reader({
             showTransliteration={preferences.showTransliteration}
             showWordByWord={preferences.showWordByWord}
             hideTranslation={preferences.hideTranslation}
+            showPlainEnglish={preferences.showPlainEnglish}
             bookmarked={bookmarks.includes(verse.key)}
             playing={playingKey === verse.key}
             translationLanguage={translationLanguage}

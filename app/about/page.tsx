@@ -33,6 +33,17 @@ export default function AboutPage() {
       </section>
 
       <section className="grid gap-2">
+        <h2 className="text-base font-semibold">Simple English</h2>
+        <p className="muted">
+          Many well-known translations use formal or older English that is hard going if English
+          is not your first language. Under each ayah the reader shows a second paragraph from a
+          translation written in plain, present-day English, so the meaning is still reachable.
+          It is a published translation in its own right, not a simplification written by this
+          app, and it can be switched off in the reader controls.
+        </p>
+      </section>
+
+      <section className="grid gap-2">
         <h2 className="text-base font-semibold">Video explanations</h2>
         <p className="muted">
           Explanations are contributed as a manifest of video segments, each mapped to a verse

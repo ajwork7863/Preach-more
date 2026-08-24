@@ -6,6 +6,17 @@ const VERSE_AUDIO_BASE = "https://verses.quran.com";
 /** Verses per request. The upstream API caps `per_page` at 50. */
 const PAGE_SIZE = 50;
 
+/**
+ * "Dr. Mustafa Khattab, the Clear Quran" — a published translation deliberately
+ * written in contemporary, plain English. It is shown as a second paragraph
+ * under the reader's chosen translation so that someone who struggles with the
+ * classical phrasing of older translations still gets the meaning.
+ *
+ * This is a real published translation, not generated text. `resolvePlainEnglishId`
+ * re-checks the catalogue at runtime in case the id ever moves.
+ */
+export const PLAIN_ENGLISH_TRANSLATION_ID = 131;
+
 export type TranslationResource = {
   id: number;
   name: string;
@@ -28,6 +39,9 @@ export type Verse = {
   arabic: string;
   translation: string | null;
   translationSource: string | null;
+  /** The same ayah in plain English, from a second published translation. */
+  plainEnglish: string | null;
+  plainEnglishSource: string | null;
   words: Word[];
   audioUrl: string | null;
 };
@@ -126,16 +140,43 @@ type RawWord = {
   translation?: { text?: string | null };
 };
 
+type RawTranslation = { text?: string; resource_id?: number; resource_name?: string };
+
 type RawVerse = {
   verse_key?: string;
   verse_number?: number;
   text_uthmani?: string;
   audio?: { url?: string | null } | null;
   words?: RawWord[];
-  translations?: { text?: string; resource_name?: string }[];
+  translations?: RawTranslation[];
 };
 
-function normalizeVerse(raw: RawVerse, surahId: number, index: number): Verse {
+/**
+ * Picks one requested translation out of a verse's `translations` array.
+ *
+ * The API echoes `resource_id`, so match on that first. Some editions have been
+ * seen to omit it, in which case fall back to the position the id was requested
+ * in — the API preserves request order.
+ */
+function selectTranslation(
+  list: RawTranslation[],
+  id: number | undefined,
+  requested: number[],
+): RawTranslation | undefined {
+  if (id === undefined) return undefined;
+  const byId = list.find((t) => t.resource_id === id);
+  if (byId) return byId;
+  const position = requested.indexOf(id);
+  return position >= 0 ? list[position] : undefined;
+}
+
+function normalizeVerse(
+  raw: RawVerse,
+  surahId: number,
+  index: number,
+  ids: { translationId?: number; plainEnglishId?: number },
+  requested: number[],
+): Verse {
   const ayahNumber = raw.verse_number ?? index + 1;
   const audioPath = raw.audio?.url ?? null;
   const words = (raw.words ?? [])
@@ -147,14 +188,24 @@ function normalizeVerse(raw: RawVerse, surahId: number, index: number): Verse {
       translation: w.translation?.text ?? null,
     }));
 
-  const rawTranslation = raw.translations?.[0];
+  const list = raw.translations ?? [];
+  const primary = selectTranslation(list, ids.translationId, requested) ?? list[0];
+  // When the reader has already chosen the plain-English edition, showing it
+  // again underneath itself would just be the same paragraph twice.
+  const duplicate = ids.plainEnglishId !== undefined && ids.plainEnglishId === ids.translationId;
+  const plain = duplicate
+    ? undefined
+    : selectTranslation(list, ids.plainEnglishId, requested);
+
   return {
     key: raw.verse_key ?? `${surahId}:${ayahNumber}`,
     surahId,
     ayahNumber,
     arabic: raw.text_uthmani ?? words.map((w) => w.arabic).join(" "),
-    translation: rawTranslation?.text ? stripFootnotes(rawTranslation.text) : null,
-    translationSource: rawTranslation?.resource_name ?? null,
+    translation: primary?.text ? stripFootnotes(primary.text) : null,
+    translationSource: primary?.resource_name ?? null,
+    plainEnglish: plain?.text ? stripFootnotes(plain.text) : null,
+    plainEnglishSource: plain?.resource_name ?? null,
     words,
     audioUrl: audioPath ? `${VERSE_AUDIO_BASE}/${audioPath.replace(/^\//, "")}` : null,
   };
@@ -162,9 +213,21 @@ function normalizeVerse(raw: RawVerse, surahId: number, index: number): Verse {
 
 export async function getSurahVerses(
   surahId: number,
-  options: { translationId?: number; recitationId?: number } = {},
+  options: {
+    translationId?: number;
+    /** Pass null to skip the plain-English paragraph entirely. */
+    plainEnglishId?: number | null;
+    recitationId?: number;
+  } = {},
 ): Promise<Verse[]> {
-  const { translationId, recitationId = 7 } = options;
+  const { translationId, plainEnglishId, recitationId = 7 } = options;
+
+  // Both translations come back in one request, so the second paragraph costs
+  // no extra round trips.
+  const requested = [...new Set([translationId, plainEnglishId ?? undefined].filter(
+    (id): id is number => typeof id === "number",
+  ))];
+
   const params = new URLSearchParams({
     words: "true",
     fields: "text_uthmani",
@@ -173,7 +236,9 @@ export async function getSurahVerses(
     audio: String(recitationId),
     per_page: String(PAGE_SIZE),
   });
-  if (translationId) params.set("translations", String(translationId));
+  if (requested.length > 0) params.set("translations", requested.join(","));
+
+  const ids = { translationId, plainEnglishId: plainEnglishId ?? undefined };
 
   const verses: Verse[] = [];
   let page = 1;
@@ -186,13 +251,34 @@ export async function getSurahVerses(
     }>(`/verses/by_chapter/${surahId}?${params}`, 60 * 60 * 24 * 7);
 
     const batch = data.verses ?? [];
-    batch.forEach((raw, i) => verses.push(normalizeVerse(raw, surahId, verses.length + i)));
+    batch.forEach((raw, i) =>
+      verses.push(normalizeVerse(raw, surahId, verses.length + i, ids, requested)),
+    );
 
     const nextPage = data.pagination?.next_page;
     if (!nextPage || batch.length === 0) break;
     page = nextPage;
   }
   return verses;
+}
+
+/**
+ * Finds the plain-English edition in the live catalogue, so the feature survives
+ * the hardcoded id changing upstream. Falls back to the constant when the
+ * catalogue cannot be reached.
+ */
+export async function resolvePlainEnglishId(): Promise<number> {
+  try {
+    const translations = await listTranslations();
+    const match =
+      translations.find((t) => t.id === PLAIN_ENGLISH_TRANSLATION_ID) ??
+      translations.find(
+        (t) => t.languageName === "english" && /clear quran/i.test(t.name),
+      );
+    return match?.id ?? PLAIN_ENGLISH_TRANSLATION_ID;
+  } catch {
+    return PLAIN_ENGLISH_TRANSLATION_ID;
+  }
 }
 
 export function surahMeta(surahId: number): Surah {

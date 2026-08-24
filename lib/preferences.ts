@@ -7,6 +7,8 @@ export type Preferences = {
   showTransliteration: boolean;
   showWordByWord: boolean;
   hideTranslation: boolean;
+  /** The plain-English paragraph under each ayah. On by default. */
+  showPlainEnglish: boolean;
 };
 
 /** Sahih International — the default until the reader picks their language. */
@@ -17,6 +19,7 @@ const DEFAULTS: Preferences = {
   showTransliteration: false,
   showWordByWord: false,
   hideTranslation: false,
+  showPlainEnglish: true,
 };
 
 const KEY = "preach-more:preferences";

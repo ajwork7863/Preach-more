@@ -11,6 +11,7 @@ type Props = {
   showTransliteration: boolean;
   showWordByWord: boolean;
   hideTranslation: boolean;
+  showPlainEnglish: boolean;
   bookmarked: boolean;
   playing: boolean;
   translationLanguage: string;
@@ -25,6 +26,7 @@ export default function VerseCard({
   showTransliteration,
   showWordByWord,
   hideTranslation,
+  showPlainEnglish,
   bookmarked,
   playing,
   translationLanguage,
@@ -128,6 +130,20 @@ export default function VerseCard({
       ) : (
         <p className="muted text-sm">No translation available in this edition for this ayah.</p>
       )}
+
+      {showPlainEnglish && verse.plainEnglish && !translationHidden ? (
+        <div
+          className="mt-3 border-l-2 pl-3"
+          style={{ borderColor: "var(--accent)" }}
+        >
+          <p className="muted mb-1 text-[0.7rem] font-medium tracking-wide uppercase">
+            In simple English
+          </p>
+          <p className="text-[0.9rem] leading-relaxed" dir="ltr" lang="en">
+            {verse.plainEnglish}
+          </p>
+        </div>
+      ) : null}
 
       {openVideo ? (
         <div className="mt-4 grid gap-2">

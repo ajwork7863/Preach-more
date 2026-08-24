@@ -1,7 +1,12 @@
 import { notFound } from "next/navigation";
 import Reader from "@/components/Reader";
 import { SURAHS } from "@/data/surahs";
-import { getSurahVerses, listTranslations, type Verse } from "@/lib/quran-api";
+import {
+  getSurahVerses,
+  listTranslations,
+  resolvePlainEnglishId,
+  type Verse,
+} from "@/lib/quran-api";
 import { videosForSurah, type ResolvedVideo } from "@/lib/videos";
 
 // Rendered per request because the translation is chosen with `?t=`, but the
@@ -29,10 +34,12 @@ export default async function SurahPage({
 
   const translationId = Number((await searchParams).t) || undefined;
 
+  const plainEnglishId = await resolvePlainEnglishId();
+
   let verses: Verse[] = [];
   let failure: string | null = null;
   try {
-    verses = await getSurahVerses(surah.id, { translationId });
+    verses = await getSurahVerses(surah.id, { translationId, plainEnglishId });
   } catch (error) {
     failure = error instanceof Error ? error.message : "Unknown error";
   }
